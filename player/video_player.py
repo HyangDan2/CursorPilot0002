@@ -31,6 +31,7 @@ class VideoPlayer(QWidget):
         self._restart_flag = False
 
     def play(self):
+        """Start or resume video playback."""
         if not self._playing:
             self._playing = True
             self._paused = False
@@ -40,6 +41,7 @@ class VideoPlayer(QWidget):
             self._timer.start(0)
 
     def stop(self):
+        """Stop video playback and reset to the beginning."""
         self._playing = False
         self._paused = False
         self._timer.stop()
@@ -47,15 +49,18 @@ class VideoPlayer(QWidget):
         self.label.setText("Video Area")
 
     def restart(self):
+        """Restart video playback from the beginning."""
         self._restart_flag = True
         self.stop()
         self.play()
 
     def pause(self):
+        """Pause video playback."""
         self._paused = True
         self._timer.stop()
 
     def load_video1(self, path):
+        """Load the first video file."""
         if self._video1:
             self._video1.release()
         self._video1 = cv2.VideoCapture(path)
@@ -64,6 +69,7 @@ class VideoPlayer(QWidget):
         self._reset_videos()
 
     def load_video2(self, path):
+        """Load the second video file."""
         if self._video2:
             self._video2.release()
         self._video2 = cv2.VideoCapture(path)
@@ -72,11 +78,57 @@ class VideoPlayer(QWidget):
         self._reset_videos()
 
     def save_mixed_video(self, path):
-        # Stub: Implement actual saving logic if needed
-        return False
+        """Save the interleaved mixed video to the specified file path."""
+        if not (self._video1_path and self._video2_path):
+            return False
+        cap1 = cv2.VideoCapture(self._video1_path)
+        cap2 = cv2.VideoCapture(self._video2_path)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fps = cap1.get(cv2.CAP_PROP_FPS) or 30
+        width = int(cap1.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap1.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        # If video2 has different size, resize frames
+        width2 = int(cap2.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height2 = int(cap2.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if width2 != width or height2 != height:
+            resize2 = True
+        else:
+            resize2 = False
+        out = cv2.VideoWriter(path, fourcc, fps, (width, height))
+        ret1, frame1 = cap1.read()
+        ret2, frame2 = cap2.read()
+        current = 1
+        while ret1 or ret2:
+            if current == 1 and ret1:
+                out.write(frame1)
+                ret1, frame1 = cap1.read()
+                current = 2
+            elif current == 2 and ret2:
+                if resize2 and frame2 is not None:
+                    frame2 = cv2.resize(frame2, (width, height))
+                out.write(frame2)
+                ret2, frame2 = cap2.read()
+                current = 1
+            elif ret1:
+                out.write(frame1)
+                ret1, frame1 = cap1.read()
+            elif ret2:
+                if resize2 and frame2 is not None:
+                    frame2 = cv2.resize(frame2, (width, height))
+                out.write(frame2)
+                ret2, frame2 = cap2.read()
+        cap1.release()
+        cap2.release()
+        out.release()
+        return True
 
     def get_fps(self):
+        """Return the current calculated FPS."""
         return self._fps
+
+    def set_loop(self, loop: bool):
+        """Enable or disable looping playback."""
+        self._loop = loop
 
     def _reset_videos(self):
         if self._video1_path:
