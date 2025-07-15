@@ -1,6 +1,7 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFileDialog, QMenuBar, QAction, QMessageBox, QComboBox, QCheckBox
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFileDialog, QMenuBar, QMessageBox, QComboBox, QCheckBox
 from PySide6.QtCore import Qt, QTimer
 from player.video_player import VideoPlayer
+from PySide6.QtGui import QAction
 
 class MainWindow(QMainWindow):
     def __init__(self):
