@@ -16,7 +16,7 @@ Date: 2024
 
 import cv2
 import numpy as np
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QProgressBar
+from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QProgressBar, QSizePolicy
 from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtGui import QImage, QPixmap
 import time
@@ -75,6 +75,10 @@ class VideoPlayer(QWidget):
                 font-size: 14px;
             }
         """)
+        # Prevent label from expanding window size
+        self.label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self.label.setMinimumSize(320, 180)
+        self.label.setMaximumSize(1280, 720)
         layout.addWidget(self.label)
         
         # Progress bar for video playback
@@ -480,8 +484,10 @@ class VideoPlayer(QWidget):
             
             # Convert to QPixmap and scale
             pixmap = QPixmap.fromImage(qimg)
+            label_size = self.label.size()
+            # Never scale pixmap larger than label size
             scaled_pixmap = pixmap.scaled(
-                self.label.size(),
+                label_size,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation
             )
