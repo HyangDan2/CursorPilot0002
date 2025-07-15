@@ -98,13 +98,24 @@ class VideoPlayer(QWidget):
         self._frame_times = []
         self._current_video = 1
         self._restart_flag = False
-        
         # Video properties
         self._total_frames = 0
         self._current_frame = 0
         self._video_fps = 30.0
         self._video_duration = 0.0
-        
+        # Mix type: 'interleave' (default) or 'column'
+        self._mix_type = 'interleave'
+        self._column_cache = None
+
+    def set_mix_type(self, mix_type: str):
+        """
+        Set the mixing type for playback.
+        Args:
+            mix_type (str): 'interleave' or 'column'
+        """
+        if mix_type in ('interleave', 'column'):
+            self._mix_type = mix_type
+
     def _init_timer(self):
         """Initialize the QTimer for frame updates."""
         self._timer = QTimer(self)
@@ -392,34 +403,44 @@ class VideoPlayer(QWidget):
     def _next_frame(self) -> None:
         """
         Process the next frame for display.
-        
         This method reads frames from the video sources, handles interleaved
-        mixing, and displays the current frame. It also updates FPS calculation
-        and progress tracking.
+        or column-by-column mixing, and displays the current frame. It also
+        updates FPS calculation and progress tracking.
         """
         if not self._playing or self._paused:
             return
-            
         frame = None
         ret1, frame1 = (self._video1.read() if self._video1 else (False, None))
         ret2, frame2 = (self._video2.read() if self._video2 else (False, None))
-        
-        # Interleaved mixing logic
         if self._mix_mode:
-            # Alternate between video1 and video2 frames
-            if self._current_video == 1 and ret1:
-                frame = frame1
-                self._current_video = 2
-            elif self._current_video == 2 and ret2:
-                frame = frame2
-                self._current_video = 1
-            elif ret1:
-                frame = frame1
-            elif ret2:
-                frame = frame2
+            if self._mix_type == 'column' and ret1 and ret2:
+                # --- Column-by-column mixing ---
+                # Resize frames to match if needed
+                if frame1.shape != frame2.shape:
+                    h = min(frame1.shape[0], frame2.shape[0])
+                    w = min(frame1.shape[1], frame2.shape[1])
+                    frame1 = cv2.resize(frame1, (w, h))
+                    frame2 = cv2.resize(frame2, (w, h))
+                # Alternate columns: even=video1, odd=video2
+                mixed = np.zeros_like(frame1)
+                mixed[:, ::2, :] = frame1[:, ::2, :]
+                mixed[:, 1::2, :] = frame2[:, 1::2, :]
+                frame = mixed
             else:
-                self._handle_video_end()
-                return
+                # Default: Interleave (frame by frame)
+                if self._current_video == 1 and ret1:
+                    frame = frame1
+                    self._current_video = 2
+                elif self._current_video == 2 and ret2:
+                    frame = frame2
+                    self._current_video = 1
+                elif ret1:
+                    frame = frame1
+                elif ret2:
+                    frame = frame2
+                else:
+                    self._handle_video_end()
+                    return
         else:
             # Single video playback
             if ret1:
@@ -429,7 +450,6 @@ class VideoPlayer(QWidget):
             else:
                 self._handle_video_end()
                 return
-                
         if frame is not None:
             self._show_frame(frame)
             self._update_fps()
