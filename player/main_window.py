@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFileDialog, QMenuBar, QAction, QMessageBox
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFileDialog, QMenuBar, QAction, QMessageBox, QComboBox
 from PySide6.QtCore import Qt, QTimer
 from player.video_player import VideoPlayer
 
@@ -36,6 +36,18 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout()
         central_widget.setLayout(layout)
+
+        # Mix mode selector
+        mode_layout = QHBoxLayout()
+        mode_label = QLabel("Mix Mode:")
+        self.mix_mode_combo = QComboBox()
+        self.mix_mode_combo.addItem("Interleave (Frame by Frame)", userData="interleave")
+        self.mix_mode_combo.addItem("Column by Column", userData="column")
+        self.mix_mode_combo.currentIndexChanged.connect(self.on_mix_mode_changed)
+        mode_layout.addWidget(mode_label)
+        mode_layout.addWidget(self.mix_mode_combo)
+        mode_layout.addStretch()
+        layout.addLayout(mode_layout)
 
         self.video_player = VideoPlayer()
         layout.addWidget(self.video_player)
@@ -87,3 +99,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(self, "Success", "Mixed video saved successfully.")
             else:
                 QMessageBox.warning(self, "Error", "Failed to save mixed video.")
+
+    def on_mix_mode_changed(self, idx):
+        mode = self.mix_mode_combo.currentData()
+        self.video_player.set_mix_type(mode)
