@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFileDialog, QMenuBar, QAction, QMessageBox, QComboBox
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFileDialog, QMenuBar, QAction, QMessageBox, QComboBox, QCheckBox
 from PySide6.QtCore import Qt, QTimer
 from player.video_player import VideoPlayer
 
@@ -46,6 +46,10 @@ class MainWindow(QMainWindow):
         self.mix_mode_combo.currentIndexChanged.connect(self.on_mix_mode_changed)
         mode_layout.addWidget(mode_label)
         mode_layout.addWidget(self.mix_mode_combo)
+        # Loop checkbox
+        self.loop_checkbox = QCheckBox("Loop")
+        self.loop_checkbox.stateChanged.connect(self.on_loop_changed)
+        mode_layout.addWidget(self.loop_checkbox)
         mode_layout.addStretch()
         layout.addLayout(mode_layout)
 
@@ -103,3 +107,15 @@ class MainWindow(QMainWindow):
     def on_mix_mode_changed(self, idx):
         mode = self.mix_mode_combo.currentData()
         self.video_player.set_mix_type(mode)
+
+    def on_loop_changed(self, state):
+        self.video_player.set_loop(self.loop_checkbox.isChecked())
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            if self.isFullScreen():
+                self.showNormal()
+            else:
+                self.showFullScreen()
+        else:
+            super().keyPressEvent(event)
