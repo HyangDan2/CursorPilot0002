@@ -1,8 +1,8 @@
 import sys
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QLabel, QMenuBar, QMenu, QAction, QFileDialog, QDialog, QVBoxLayout, QPushButton, QListWidget, QWidget, QHBoxLayout
+    QApplication, QMainWindow, QLabel, QMenuBar, QMenu, QFileDialog, QDialog, QVBoxLayout, QPushButton, QListWidget, QWidget, QHBoxLayout
 )
-from PySide6.QtGui import QPixmap, QKeySequence, QImage, QColor
+from PySide6.QtGui import QPixmap, QKeySequence, QImage, QColor, QAction
 from PySide6.QtCore import Qt
 import os
 
