@@ -123,24 +123,35 @@ class MainWindow(QMainWindow):
         self.video_player.set_fullscreen_mode(self._fullscreen)
         if self._fullscreen:
             self.menuBar().setVisible(False)
-            self.fps_label.setVisible(False)
-            self.play_btn.setVisible(False)
-            self.stop_btn.setVisible(False)
-            self.restart_btn.setVisible(False)
-            self.pause_btn.setVisible(False)
-            self.mix_mode_combo.setVisible(False)
-            self.loop_checkbox.setVisible(False)
-            for i in range(self.controls.count()):
-                item = self.controls.itemAt(i).widget()
-                if item:
-                    item.setVisible(False)
-            for i in range(self.mode_layout.count()):
-                item = self.mode_layout.itemAt(i).widget()
-                if item:
-                    item.setVisible(False)
+            # Remove all widgets except video_player
+            self._main_layout.removeItem(self.mode_layout)
+            self._main_layout.removeWidget(self.fps_label)
+            self._main_layout.removeItem(self.controls)
+            self.fps_label.setParent(None)
+            for i in reversed(range(self.controls.count())):
+                w = self.controls.itemAt(i).widget()
+                if w:
+                    w.setParent(None)
+            for i in reversed(range(self.mode_layout.count())):
+                w = self.mode_layout.itemAt(i).widget()
+                if w:
+                    w.setParent(None)
             self.showFullScreen()
         else:
             self.menuBar().setVisible(True)
+            # Re-add widgets to layout
+            self._main_layout.insertLayout(0, self.mode_layout)
+            self._main_layout.insertWidget(2, self.fps_label)
+            self._main_layout.insertLayout(3, self.controls)
+            # Restore widgets to layouts
+            self.mode_layout.addWidget(QLabel("Mix Mode:"), 0)
+            self.mode_layout.addWidget(self.mix_mode_combo, 1)
+            self.mode_layout.addWidget(self.loop_checkbox, 2)
+            self.mode_layout.addStretch()
+            self.controls.addWidget(self.play_btn)
+            self.controls.addWidget(self.stop_btn)
+            self.controls.addWidget(self.restart_btn)
+            self.controls.addWidget(self.pause_btn)
             self.fps_label.setVisible(True)
             self.play_btn.setVisible(True)
             self.stop_btn.setVisible(True)
@@ -148,12 +159,4 @@ class MainWindow(QMainWindow):
             self.pause_btn.setVisible(True)
             self.mix_mode_combo.setVisible(True)
             self.loop_checkbox.setVisible(True)
-            for i in range(self.controls.count()):
-                item = self.controls.itemAt(i).widget()
-                if item:
-                    item.setVisible(True)
-            for i in range(self.mode_layout.count()):
-                item = self.mode_layout.itemAt(i).widget()
-                if item:
-                    item.setVisible(True)
             self.showNormal()
