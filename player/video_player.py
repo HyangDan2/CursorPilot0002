@@ -540,3 +540,12 @@ class VideoPlayer(QWidget):
             self._reset_videos()
         else:
             self.stop()
+
+    def set_fullscreen_mode(self, fullscreen: bool):
+        """Expand video QLabel to fill all space in fullscreen, restore on exit."""
+        if fullscreen:
+            self.label.setMaximumSize(16777215, 16777215)  # Effectively unlimited
+            self.label.setMinimumSize(1, 1)
+        else:
+            self.label.setMinimumSize(320, 180)
+            self.label.setMaximumSize(1280, 720)
