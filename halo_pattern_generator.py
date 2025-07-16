@@ -3,10 +3,11 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QMenuBar, QMenu, QFileDialog, QDialog, QVBoxLayout, QPushButton, QListWidget, QWidget, QHBoxLayout
 )
 from PySide6.QtGui import QPixmap, QKeySequence, QImage, QColor, QAction
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal, QSettings
 import os
 
 class PatternManager(QDialog):
+    image_selected = Signal(str)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Pattern Manager')
@@ -18,6 +19,7 @@ class PatternManager(QDialog):
         self.add_button.clicked.connect(self.add_pattern)
         self.layout.addWidget(self.add_button)
         self.setLayout(self.layout)
+        self.list_widget.itemDoubleClicked.connect(self.on_item_double_clicked)
 
     def add_pattern(self):
         file_dialog = QFileDialog(self)
@@ -34,6 +36,11 @@ class PatternManager(QDialog):
     def get_patterns(self):
         return self.patterns
 
+    def on_item_double_clicked(self, item):
+        idx = self.list_widget.row(item)
+        if 0 <= idx < len(self.patterns):
+            self.image_selected.emit(self.patterns[idx])
+
 class PatternDisplay(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -42,8 +49,12 @@ class PatternDisplay(QLabel):
         self.current_pixmap = None
         self.current_metadata = ''
         self.show_metadata = False
+        self.is_fullscreen = False
+        self._normal_geometry = None
 
-    def show_pattern(self, pattern_type, image_path=None):
+    def show_pattern(self, pattern_type, image_path=None, fullscreen=None):
+        if fullscreen is not None:
+            self.is_fullscreen = fullscreen
         if pattern_type == 'red':
             self.setStyleSheet('background-color: red;')
             self.setText('')
@@ -65,9 +76,14 @@ class PatternDisplay(QLabel):
             if pixmap.isNull():
                 self.setText('Failed to load image')
                 self.current_metadata = 'Invalid image file.'
+                self.current_pixmap = None
             else:
-                self.setPixmap(pixmap.scaled(self.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
-                self.current_metadata = f'Image: {os.path.basename(image_path)} ({pixmap.width()}x{pixmap.height()})'
+                self.current_pixmap = pixmap
+                if self.is_fullscreen:
+                    self.setPixmap(self.current_pixmap.scaled(self.size(), Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                else:
+                    self.setPixmap(self.current_pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                self.current_metadata = image_path
             self.setStyleSheet('background-color: black;')
         else:
             self.setStyleSheet('background-color: black;')
@@ -77,7 +93,12 @@ class PatternDisplay(QLabel):
 
     def resizeEvent(self, event):
         if self.current_pixmap:
-            self.setPixmap(self.current_pixmap.scaled(self.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            if self.is_fullscreen:
+                self.setPixmap(self.current_pixmap.scaled(self.size(), Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            else:
+                self.setPixmap(self.current_pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        else:
+            self.clear()
         super().resizeEvent(event)
         self.update_metadata()
 
@@ -96,13 +117,17 @@ class HaloPatternGenerator(QMainWindow):
         super().__init__()
         self.setWindowTitle('Halo Evaluation Pattern Generator')
         self.pattern_manager = PatternManager(self)
+        self.pattern_manager.image_selected.connect(self.display_selected_pattern)
         self.pattern_display = PatternDisplay(self)
         self.setCentralWidget(self.pattern_display)
         self.patterns = []
         self.current_pattern_index = -1
+        self.settings = QSettings('CursorPilot', 'HaloPatternGenerator')
         self.is_fullscreen = False
+        self._normal_geometry = None
+        self.restore_state()
         self.init_menu()
-        self.showMaximized()
+        self.show()
 
     def init_menu(self):
         menubar = self.menuBar()
@@ -120,6 +145,9 @@ class HaloPatternGenerator(QMainWindow):
             if self.patterns:
                 self.current_pattern_index = 0
                 self.pattern_display.show_pattern('image', self.patterns[0])
+
+    def display_selected_pattern(self, image_path):
+        self.pattern_display.show_pattern('image', image_path)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
@@ -143,10 +171,40 @@ class HaloPatternGenerator(QMainWindow):
 
     def toggle_fullscreen(self):
         if self.is_fullscreen:
+            if self._normal_geometry:
+                self.setGeometry(self._normal_geometry)
+            self.pattern_display.is_fullscreen = False
+            self.pattern_display.resizeEvent(None)
             self.showNormal()
+            QApplication.processEvents()
+            self.is_fullscreen = False
         else:
+            self._normal_geometry = self.geometry()
+            self.pattern_display.is_fullscreen = True
+            self.pattern_display.resizeEvent(None)
             self.showFullScreen()
-        self.is_fullscreen = not self.is_fullscreen
+            QApplication.processEvents()
+            self.is_fullscreen = True
+
+    def restore_state(self):
+        geometry = self.settings.value('geometry')
+        fullscreen = self.settings.value('fullscreen', False, type=bool)
+        last_image = self.settings.value('last_image')
+        if geometry:
+            self.setGeometry(geometry)
+        if fullscreen:
+            self.toggle_fullscreen()
+        if last_image:
+            self.pattern_display.show_pattern('image', last_image, fullscreen=self.is_fullscreen)
+
+    def closeEvent(self, event):
+        self.settings.setValue('geometry', self.geometry())
+        self.settings.setValue('fullscreen', self.is_fullscreen)
+        if self.pattern_display.current_pixmap:
+            self.settings.setValue('last_image', self.pattern_display.current_metadata)
+        else:
+            self.settings.remove('last_image')
+        super().closeEvent(event)
 
     def next_pattern(self):
         if self.patterns:
