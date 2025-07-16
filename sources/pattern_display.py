@@ -76,4 +76,12 @@ class PatternDisplay(QLabel):
 
     def toggle_metadata(self):
         self.show_metadata = not self.show_metadata
-        self.update_metadata() 
+        self.update_metadata()
+
+    def increase_pixels(self):
+        # TODO: 현재 이미지의 모든 픽셀 값을 +1 (최대 0xFF)
+        pass
+
+    def decrease_pixels(self):
+        # TODO: 현재 이미지의 모든 픽셀 값을 -1 (최소 0x00)
+        pass 

@@ -17,6 +17,7 @@ class HaloPatternGenerator(QMainWindow):
         self.settings = QSettings('CursorPilot', 'HaloPatternGenerator')
         self.is_fullscreen = False
         self._normal_geometry = None
+        self.pattern_display.show_pattern('black')  # 초기 Black Pattern 표시
         self.restore_state()
         self.init_menu()
         self.show()
@@ -67,20 +68,20 @@ class HaloPatternGenerator(QMainWindow):
             super().keyPressEvent(event)
 
     def toggle_fullscreen(self):
-        if self.is_fullscreen:
+        if self.isFullScreen():
+            self.showNormal()
+            QApplication.processEvents()
             if self._normal_geometry:
                 self.setGeometry(self._normal_geometry)
             self.pattern_display.is_fullscreen = False
             self.pattern_display.resizeEvent(None)
-            self.showNormal()
-            QApplication.processEvents()
             self.is_fullscreen = False
         else:
             self._normal_geometry = self.geometry()
-            self.pattern_display.is_fullscreen = True
-            self.pattern_display.resizeEvent(None)
             self.showFullScreen()
             QApplication.processEvents()
+            self.pattern_display.is_fullscreen = True
+            self.pattern_display.resizeEvent(None)
             self.is_fullscreen = True
 
     def next_pattern(self):
