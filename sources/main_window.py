@@ -64,12 +64,7 @@ class MainWindow(QMainWindow):
                 self.exit_fullscreen()
             else:
                 self.enter_fullscreen()
-        elif event.key() == Qt.Key.Key_Up:
-            if hasattr(self.pattern_display, 'increase_pixels'):
-                self.pattern_display.increase_pixels()
-        elif event.key() == Qt.Key.Key_Down:
-            if hasattr(self.pattern_display, 'decrease_pixels'):
-                self.pattern_display.decrease_pixels()
+        # ↑, ↓ 키 관련 코드는 제거
         elif event.key() == Qt.Key.Key_Tab:
             self.pattern_display.toggle_metadata()
         elif event.matches(QKeySequence('Ctrl+I')):
