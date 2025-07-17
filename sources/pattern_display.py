@@ -15,35 +15,35 @@ class PatternDisplay(QLabel):
         self.mouse_pos = None
         self.setMouseTracking(True)
 
-    def show_pattern(self, pattern_type, image_path=None, fullscreen=None):
+    def show_pattern(self, pattern_type, image_path=None, fullscreen=None, level=255):
         if fullscreen is not None:
             self.is_fullscreen = fullscreen
         width = self.width() if self.width() > 0 else 640
         height = self.height() if self.height() > 0 else 480
         if pattern_type == 'red':
             img = QImage(width, height, QImage.Format.Format_RGB32)
-            img.fill(QColor(255, 0, 0))
+            img.fill(QColor(level, 0, 0))
             self.current_pixmap = QPixmap.fromImage(img)
             self.setPixmap(self.current_pixmap)
-            self.current_metadata = 'Full Red Pattern'
+            self.current_metadata = f'Full Red Pattern (Level: {level})'
         elif pattern_type == 'green':
             img = QImage(width, height, QImage.Format.Format_RGB32)
-            img.fill(QColor(0, 255, 0))
+            img.fill(QColor(0, level, 0))
             self.current_pixmap = QPixmap.fromImage(img)
             self.setPixmap(self.current_pixmap)
-            self.current_metadata = 'Full Green Pattern'
+            self.current_metadata = f'Full Green Pattern (Level: {level})'
         elif pattern_type == 'blue':
             img = QImage(width, height, QImage.Format.Format_RGB32)
-            img.fill(QColor(0, 0, 255))
+            img.fill(QColor(0, 0, level))
             self.current_pixmap = QPixmap.fromImage(img)
             self.setPixmap(self.current_pixmap)
-            self.current_metadata = 'Full Blue Pattern'
+            self.current_metadata = f'Full Blue Pattern (Level: {level})'
         elif pattern_type == 'white':
             img = QImage(width, height, QImage.Format.Format_RGB32)
-            img.fill(QColor(255, 255, 255))
+            img.fill(QColor(level, level, level))
             self.current_pixmap = QPixmap.fromImage(img)
             self.setPixmap(self.current_pixmap)
-            self.current_metadata = 'Full White Pattern'
+            self.current_metadata = f'Full White Pattern (Level: {level})'
         elif pattern_type == 'black':
             img = QImage(width, height, QImage.Format.Format_RGB32)
             img.fill(QColor(0, 0, 0))
