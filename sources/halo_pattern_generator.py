@@ -111,6 +111,8 @@ class HaloPatternGenerator(QMainWindow):
             self.pattern_display.is_fullscreen = False
             self.pattern_display.resizeEvent(None)
             self.is_fullscreen = False
+            if self.menuBar():
+                self.menuBar().show()
         else:
             self._normal_geometry = self.geometry()
             self.showFullScreen()
@@ -118,6 +120,8 @@ class HaloPatternGenerator(QMainWindow):
             self.pattern_display.is_fullscreen = True
             self.pattern_display.resizeEvent(None)
             self.is_fullscreen = True
+            if self.menuBar():
+                self.menuBar().hide()
 
     def next_pattern(self):
         if self.patterns:
