@@ -1,6 +1,7 @@
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QLabel, QSizePolicy
 from PySide6.QtGui import QPixmap, QImage, QColor, Qt
 import os
+import numpy as np
 
 class PatternDisplay(QLabel):
     def __init__(self, parent=None):
@@ -14,6 +15,11 @@ class PatternDisplay(QLabel):
         self._normal_geometry = None
         self.mouse_pos = None
         self.setMouseTracking(True)
+        self.image_brightness_level = 100  # 0~100, 100이 100%
+        self.image_brightness_max = 100
+        self.image_brightness_min = 0
+        self.original_image = None  # 원본 QImage
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
 
     def show_pattern(self, pattern_type, image_path=None, fullscreen=None, level=255):
         if fullscreen is not None:
@@ -56,17 +62,20 @@ class PatternDisplay(QLabel):
                 self.setText('Failed to load image')
                 self.current_metadata = 'Invalid image file.'
                 self.current_pixmap = None
+                self.original_image = None
+                self.image_brightness_level = 100
             else:
                 self.current_pixmap = pixmap
-                if self.is_fullscreen:
-                    self.setPixmap(self.current_pixmap.scaled(self.size(), Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation))
-                else:
-                    self.setPixmap(self.current_pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-                self.current_metadata = image_path
+                self.original_image = pixmap.toImage().convertToFormat(QImage.Format.Format_RGB32)
+                self.image_brightness_level = 100
+                self.adjust_image_graylevel(0) # 이미지 로드 시 밝기 조정
+                self.current_metadata = f"{image_path} (Brightness: {self.image_brightness_level}%)"
         else:
             self.setText('')
             self.current_metadata = ''
             self.current_pixmap = None
+            self.original_image = None
+            self.image_brightness_level = 100
         self.update_metadata()
 
     def resizeEvent(self, event):
@@ -130,4 +139,32 @@ class PatternDisplay(QLabel):
             if 0 <= x < img.width() and 0 <= y < img.height():
                 c = img.pixelColor(x, y)
                 return f"RGB: ({c.red()}, {c.green()}, {c.blue()})"
-        return None 
+        return None
+
+    def adjust_image_graylevel(self, delta):
+        if not self.original_image:
+            return
+        new_level = self.image_brightness_level + delta
+        # 보정: 1~9에서 +10이면 10, 91~99에서 +10이면 100, 91~99에서 -10이면 90, 1~9에서 -10이면 0
+        if delta == 10:
+            if 1 <= self.image_brightness_level < 10:
+                new_level = 10
+            elif 91 <= self.image_brightness_level < 100:
+                new_level = 100
+        elif delta == -10:
+            if 91 <= self.image_brightness_level < 100:
+                new_level = 90
+            elif 1 <= self.image_brightness_level < 10:
+                new_level = 0
+        if new_level < self.image_brightness_min or new_level > self.image_brightness_max:
+            return
+        self.image_brightness_level = new_level
+        factor = self.image_brightness_level / self.image_brightness_max
+        arr = np.frombuffer(memoryview(self.original_image.bits()), dtype=np.uint8).reshape((self.original_image.height(), self.original_image.width(), 4)).astype(np.float32)
+        arr[:, :, 0:3] = np.clip(arr[:, :, 0:3] * factor, 0, 255)
+        arr = arr.astype(np.uint8)
+        img2 = QImage(arr.data, self.original_image.width(), self.original_image.height(), QImage.Format.Format_RGB32)
+        self.current_pixmap = QPixmap.fromImage(img2.copy())
+        self.setPixmap(self.current_pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        self.current_metadata = f"{self.current_metadata.split(' (Brightness:')[0]} (Brightness: {self.image_brightness_level}%)"
+        self.update() 

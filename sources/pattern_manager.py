@@ -11,13 +11,13 @@ class PatternManager(QDialog):
         super().__init__(parent)
         self.setWindowTitle('Pattern Manager')
         self.patterns = []
-        self.layout = QVBoxLayout()
+        self.vbox = QVBoxLayout()
         self.list_widget = QListWidget()
-        self.layout.addWidget(self.list_widget)
+        self.vbox.addWidget(self.list_widget)
         self.add_button = QPushButton('Add Pattern (Image)')
         self.add_button.clicked.connect(self.add_pattern)
-        self.layout.addWidget(self.add_button)
-        self.setLayout(self.layout)
+        self.vbox.addWidget(self.add_button)
+        self.setLayout(self.vbox)
         self.list_widget.itemDoubleClicked.connect(self.on_item_double_clicked)
         self.load_image_folder()
 

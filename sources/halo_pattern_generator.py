@@ -45,26 +45,41 @@ class HaloPatternGenerator(QMainWindow):
     def display_selected_pattern(self, image_path):
         self.pattern_display.show_pattern('image', image_path, fullscreen=self.is_fullscreen)
         self.settings.setValue('last_image', image_path)
+        self.current_rgbw = None  # 이미지 로드시 RGBW 상태 해제
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
             self.toggle_fullscreen()
         elif event.key() == Qt.Key.Key_Up:
-            if self.current_rgbw in ['red', 'green', 'blue', 'white'] and self.rgbw_level < 255:
-                self.rgbw_level += 1
-                self.pattern_display.show_pattern(self.current_rgbw, level=self.rgbw_level)
+            if self.current_rgbw in ['red', 'green', 'blue', 'white']:
+                if self.rgbw_level < 255:
+                    self.rgbw_level += 1
+                    self.pattern_display.show_pattern(self.current_rgbw, level=self.rgbw_level)
+                # else: 이미 최대 밝기이므로 아무 동작도 하지 않음
+            else:
+                self.pattern_display.adjust_image_graylevel(1)
         elif event.key() == Qt.Key.Key_Down:
-            if self.current_rgbw in ['red', 'green', 'blue', 'white'] and self.rgbw_level > 0:
-                self.rgbw_level -= 1
-                self.pattern_display.show_pattern(self.current_rgbw, level=self.rgbw_level)
+            if self.current_rgbw in ['red', 'green', 'blue', 'white']:
+                if self.rgbw_level > 0:
+                    self.rgbw_level -= 1
+                    self.pattern_display.show_pattern(self.current_rgbw, level=self.rgbw_level)
+                # else: 이미 최소 밝기이므로 아무 동작도 하지 않음
+            else:
+                self.pattern_display.adjust_image_graylevel(-1)
         elif (event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal) and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
             if self.current_rgbw in ['red', 'green', 'blue', 'white']:
-                self.rgbw_level = min(self.rgbw_level + 32, 255)
-                self.pattern_display.show_pattern(self.current_rgbw, level=self.rgbw_level)
+                if self.rgbw_level < 255:
+                    self.rgbw_level = min(self.rgbw_level + 32, 255)
+                    self.pattern_display.show_pattern(self.current_rgbw, level=self.rgbw_level)
+            else:
+                self.pattern_display.adjust_image_graylevel(10)
         elif (event.key() == Qt.Key.Key_Minus or event.key() == Qt.Key.Key_Underscore) and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
             if self.current_rgbw in ['red', 'green', 'blue', 'white']:
-                self.rgbw_level = max(self.rgbw_level - 32, 0)
-                self.pattern_display.show_pattern(self.current_rgbw, level=self.rgbw_level)
+                if self.rgbw_level > 0:
+                    self.rgbw_level = max(self.rgbw_level - 32, 0)
+                    self.pattern_display.show_pattern(self.current_rgbw, level=self.rgbw_level)
+            else:
+                self.pattern_display.adjust_image_graylevel(-10)
         elif event.key() == Qt.Key.Key_Tab:
             self.pattern_display.toggle_metadata()
         elif event.key() == Qt.Key.Key_1:
@@ -93,12 +108,14 @@ class HaloPatternGenerator(QMainWindow):
                 image_path = self.patterns[self.current_pattern_index]
                 self.pattern_display.show_pattern('image', image_path, fullscreen=self.is_fullscreen)
                 self.settings.setValue('last_image', image_path)
+                self.current_rgbw = None  # 이미지 로드시 RGBW 상태 해제
             else:
                 last_image = self.settings.value('last_image', None)
                 if last_image:
                     last_image = str(last_image)
                     if os.path.exists(last_image):
                         self.pattern_display.show_pattern('image', last_image, fullscreen=self.is_fullscreen)
+                        self.current_rgbw = None  # 이미지 로드시 RGBW 상태 해제
         else:
             super().keyPressEvent(event)
 
